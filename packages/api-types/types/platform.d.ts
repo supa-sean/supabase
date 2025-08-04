@@ -4189,6 +4189,28 @@ export interface components {
       resources: string[] | null
       restrictive: boolean | null
     }
+    AwsPartnerBilling: {
+      partner: 'aws'
+      clazar_buyer_id: string
+    }
+    FlyPartnerBilling: {
+      partner: 'fly'
+    }
+    VercelPartnerBilling: {
+      partner: 'vercel'
+    }
+    BillingMetadata: {
+      partner_billing?: AwsPartnerBilling | FlyPartnerBilling | VercelPartnerBilling
+      /** The billing provider can be different from the payment provider, i.e. Orb handles billing whereas Stripe is the PSP */
+      billing_provider: 'stripe' | 'orb'
+      subscription_id: string
+      /** Can be undefined if the org is billed through a partner */
+      payment_provider?: 'stripe' | 'orb'
+      /** Stripe customer id for both orb and stripe */
+      payment_provider_customer_id?: string
+      /** Stripe customer id for Stripe, Orb customer id for Orb */
+      billing_provider_customer_id: string
+    }
     AccessToken: {
       created_at: string
       id: number
@@ -6350,6 +6372,7 @@ export interface components {
     }
     OrganizationResponse: {
       billing_email: string | null
+      billing_metadata: BillingMetadata | null
       id: number
       is_owner: boolean
       name: string
@@ -6402,9 +6425,7 @@ export interface components {
     }
     OrganizationSlugResponse: {
       billing_email: string | null
-      billing_metadata: {
-        [key: string]: unknown
-      } | null
+      billing_metadata: BillingMetadata | null
       has_oriole_project: boolean
       id: number
       name: string
