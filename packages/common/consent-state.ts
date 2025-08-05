@@ -64,35 +64,43 @@ async function initUserCentrics() {
   // [Alaister] For local development and staging, we accept all consent by default.
   // If you need to test usercentrics in these environments, comment out this
   // NEXT_PUBLIC_ENVIRONMENT check and add an ngrok domain to usercentrics
-  if (
+  const isVercelPreview = process.env.NEXT_PUBLIC_VERCEL_ENV === 'preview'
+  const isLocalOrStaging =
     process.env.NEXT_PUBLIC_ENVIRONMENT === 'local' ||
     process.env.NEXT_PUBLIC_ENVIRONMENT === 'staging'
-  ) {
+
+  if (isLocalOrStaging || isVercelPreview) {
     consentState.hasConsented = true
     return
   }
 
   const { default: Usercentrics } = await import('@usercentrics/cmp-browser-sdk')
 
-  const UC = new Usercentrics(process.env.NEXT_PUBLIC_USERCENTRICS_RULESET_ID!, {
-    rulesetId: process.env.NEXT_PUBLIC_USERCENTRICS_RULESET_ID,
-    useRulesetId: true,
-  })
+  try {
+    const UC = new Usercentrics(process.env.NEXT_PUBLIC_USERCENTRICS_RULESET_ID!, {
+      rulesetId: process.env.NEXT_PUBLIC_USERCENTRICS_RULESET_ID,
+      useRulesetId: true,
+    })
 
-  const initialUIValues = await UC.init()
+    const initialUIValues = await UC.init()
 
-  consentState.UC = UC
-  const hasConsented = UC.areAllConsentsAccepted()
+    consentState.UC = UC
+    const hasConsented = UC.areAllConsentsAccepted()
 
-  // 0 = first layer, aka show consent toast
-  consentState.showConsentToast = initialUIValues.initialLayer === 0
-  consentState.hasConsented = hasConsented
-  consentState.categories = UC.getCategoriesBaseInfo()
+    // 0 = first layer, aka show consent toast
+    consentState.showConsentToast = initialUIValues.initialLayer === 0
+    consentState.hasConsented = hasConsented
+    consentState.categories = UC.getCategoriesBaseInfo()
 
-  // If the user has previously consented (before usercentrics), accept all services
-  if (!hasConsented && localStorage?.getItem(LOCAL_STORAGE_KEYS.TELEMETRY_CONSENT) === 'true') {
-    consentState.acceptAll()
-    localStorage.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_CONSENT)
+    // If the user has previously consented (before usercentrics), accept all services
+    if (!hasConsented && localStorage?.getItem(LOCAL_STORAGE_KEYS.TELEMETRY_CONSENT) === 'true') {
+      consentState.acceptAll()
+      localStorage.removeItem(LOCAL_STORAGE_KEYS.TELEMETRY_CONSENT)
+    }
+  } catch (error) {
+    // Usercentrics initialization failed - don't auto-grant consent
+    // Don't auto-grant consent if Usercentrics fails
+    consentState.hasConsented = false
   }
 }
 
